@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COWBELL Sample Uploader</title>
+<meta name="description" content="Send COWBELL's full-quality cowbell samples to an FM-1 running the COWBELL firmware, from the browser over USB-MIDI.">
+<style>
+  :root {
+    --bg: #f6dbe5;
+    --panel: #ffffff;
+    --ink: #4b1528;
+    --muted: #8a5068;
+    --accent: #d25078;
+    --accent-ink: #ffffff;
+    --line: #ecb4c8;
+    --good: #2e7d4f;
+    --bad: #b3261e;
+    --track: #f3cbd9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1f0d15;
+      --panel: #2c1420;
+      --ink: #f8dce6;
+      --muted: #c993a8;
+      --accent: #e56b91;
+      --accent-ink: #1f0d15;
+      --line: #4d2537;
+      --good: #6fcf97;
+      --bad: #ff8a80;
+      --track: #3d1c2b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 48px; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+  header svg { flex: none; }
+  h1 { font-size: 28px; line-height: 1.1; margin: 0; letter-spacing: 0.02em; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .step { display: flex; gap: 12px; align-items: baseline; }
+  .num {
+    flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+    font-weight: 700; font-size: 14px; display: inline-flex; align-items: center; justify-content: center;
+  }
+  h2 { font-size: 17px; margin: 0 0 6px; }
+  p { margin: 0 0 10px; }
+  .step > div { flex: 1; min-width: 0; }
+  button {
+    font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 10px 18px; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+  select { font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); max-width: 100%; }
+  .status { margin-top: 12px; font-size: 15px; min-height: 1.5em; }
+  .status.good { color: var(--good); }
+  .status.bad { color: var(--bad); }
+  .bar { height: 10px; background: var(--track); border-radius: 5px; overflow: hidden; margin-top: 12px; display: none; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.15s; }
+  .samples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding: 0; list-style: none; }
+  .samples li {
+    font: 13px/1 ui-monospace, "Cascadia Mono", Consolas, monospace; padding: 5px 8px; border-radius: 6px;
+    background: var(--track);
+  }
+  .muted { color: var(--muted); font-size: 14px; }
+  input[type=file] { font-size: 14px; max-width: 100%; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  code { font: 13px ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+      <path d="M14 8h16l6 26H8z" fill="var(--accent)"/>
+      <rect x="18" y="3" width="8" height="6" rx="2" fill="var(--ink)"/>
+      <circle cx="22" cy="37" r="4" fill="var(--ink)"/>
+    </svg>
+    <h1>COWBELL samples</h1>
+  </header>
+  <p class="sub">The COWBELL firmware comes with a smaller, 22 kHz copy of its cowbells built in. This page sends the
+    full-quality set to your FM-1 over USB. It takes about ten seconds, and the samples stay through power-offs
+    and firmware updates.</p>
+
+  <section class="card">
+    <div class="step"><span class="num">1</span><div>
+      <h2>Connect</h2>
+      <p>Plug the FM-1 in over USB with COWBELL running. Close any other program that uses its MIDI port: Windows
+        lets only one have it. Use Chrome or Edge; the browser asks to let this page use MIDI devices.</p>
+      <div class="row">
+        <button id="connect">Connect to the FM-1</button>
+        <select id="ports" hidden aria-label="MIDI port"></select>
+      </div>
+      <div id="cstatus" class="status" role="status"></div>
+    </div></div>
+  </section>
+
+  <section class="card">
+    <div class="step"><span class="num">2</span><div>
+      <h2>Send the samples</h2>
+      <p id="bankinfo" class="muted">Loading the sample bank…</p>
+      <ul id="names" class="samples"></ul>
+      <div class="row">
+        <button id="send" disabled>Send to the FM-1</button>
+      </div>
+      <div class="bar" id="bar"><i></i></div>
+      <div id="ustatus" class="status" role="status"></div>
+      <details>
+        <summary>Use a different bank file</summary>
+        <p class="muted" style="margin-top:8px">A <code>bank.bin</code> made with <code>tools/make_samples.py</code>
+          from your own WAV files.</p>
+        <input type="file" id="file" accept=".bin,application/octet-stream">
+      </details>
+    </div></div>
+  </section>
+
+  <p class="muted">Sound stops while the samples arrive. If the cable comes out halfway, COWBELL goes back to its
+    built-in samples; connect again and resend. Source: <a href="https://github.com/C0DED00D/fm1-cowbell">github.com/C0DED00D/fm1-cowbell</a> (GPL-3.0).</p>
+</main>
+
+<script>
+"use strict";
+const HEAD = [0xF0, 0x7D, 0x43, 0x42];
+const CHUNK = 512;
+const STATUS = {1: "refused (size or order)", 2: "flash erase failed", 3: "flash write failed",
+  11: "no bank header", 12: "bad size", 13: "CRC mismatch", 14: "bad sample entry", 19: "incomplete"};
+
+const $ = id => document.getElementById(id);
+let access = null, input = null, output = null, info = null, bank = null, busy = false;
+let waiter = null;
+
+function pack7(data) {
+  const out = [];
+  for (let i = 0; i < data.length; i += 7) {
+    const g = data.subarray(i, i + 7);
+    let hi = 0;
+    g.forEach((b, k) => { hi |= ((b >> 7) & 1) << k; });
+    out.push(hi);
+    g.forEach(b => out.push(b & 0x7F));
+  }
+  return out;
+}
+function unpack7(data) {
+  const out = [];
+  let i = 0;
+  while (i < data.length) {
+    const hi = data[i++];
+    for (let k = 0; k < 7 && i < data.length; k++) out.push(data[i++] | (((hi >> k) & 1) << 7));
+  }
+  return new Uint8Array(out);
+}
+function u32(n) { return new Uint8Array([n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255]); }
+function msg(cmd, payload = new Uint8Array(0)) { return [...HEAD, cmd, ...pack7(payload), 0xF7]; }
+
+function setStatus(el, text, kind = "") { el.textContent = text; el.className = "status" + (kind ? " " + kind : ""); }
+
+function onMessage(e) {
+  const d = e.data;
+  if (!waiter || d.length < 7 || d[0] !== 0xF0 || d[1] !== 0x7D || d[2] !== 0x43 || d[3] !== 0x42) return;
+  if (d[4] !== (0x40 | waiter.cmd)) return;
+  const raw = unpack7(d.subarray(6, d.length - 1));
+  const v = [];
+  for (let i = 0; i + 4 <= raw.length; i += 4) v.push((raw[i] | raw[i + 1] << 8 | raw[i + 2] << 16 | raw[i + 3] << 24) >>> 0);
+  const w = waiter; waiter = null; clearTimeout(w.timer);
+  w.resolve({status: d[5], v});
+}
+
+function ask(cmd, payload, timeout = 3000) {
+  return new Promise(resolve => {
+    if (waiter) { clearTimeout(waiter.timer); waiter.resolve(null); }
+    waiter = {cmd, resolve, timer: setTimeout(() => { waiter = null; resolve(null); }, timeout)};
+    output.send(msg(cmd, payload));
+  });
+}
+
+function fm1Like(name) { return /fm-?1|usb-midi/i.test(name || ""); }
+
+function listPorts() {
+  const sel = $("ports");
+  const outs = [...access.outputs.values()];
+  sel.innerHTML = "";
+  outs.forEach(o => { const opt = document.createElement("option"); opt.value = o.id; opt.textContent = o.name; sel.appendChild(opt); });
+  const best = outs.find(o => fm1Like(o.name));
+  if (best) sel.value = best.id;
+  sel.hidden = outs.length < 2;
+  return outs.length;
+}
+
+function pickInputFor(out) {
+  const ins = [...access.inputs.values()];
+  const base = s => (s || "").replace(/\s*\d+\s*$/, "").trim().toLowerCase();
+  return ins.find(i => i.name === out.name) || ins.find(i => base(i.name) === base(out.name)) ||
+         ins.find(i => fm1Like(i.name)) || ins[0] || null;
+}
+
+async function probe() {
+  const cs = $("cstatus");
+  info = null;
+  if (input) input.onmidimessage = null;
+  output = access.outputs.get($("ports").value) || null;
+  input = output ? pickInputFor(output) : null;
+  if (!output || !input) { setStatus(cs, "No FM-1 found. Plug it in, close other MIDI programs, then connect again.", "bad"); update(); return; }
+  input.onmidimessage = onMessage;
+  setStatus(cs, "Asking " + output.name + "…");
+  let r = null;
+  for (let k = 0; k < 2 && !r; k++) r = await ask(0x01, undefined, 1500);
+  if (!r) {
+    setStatus(cs, output.name + " did not answer. Is the FM-1 running the COWBELL firmware? If another program has its MIDI port, close it and connect again.", "bad");
+  } else {
+    info = {samples: r.v[0], room: r.v[1], version: r.v[2], starter: r.v[3] === 1};
+    const what = info.starter ? "the built-in starter samples (" + info.samples + ")"
+                              : info.samples + " uploaded samples";
+    setStatus(cs, "Connected: COWBELL firmware v" + info.version + ", playing " + what + ".", "good");
+  }
+  update();
+}
+
+async function connect() {
+  const cs = $("cstatus");
+  if (!navigator.requestMIDIAccess) {
+    setStatus(cs, "This browser has no Web MIDI. Use Chrome or Edge on a computer.", "bad");
+    return;
+  }
+  try {
+    access = await navigator.requestMIDIAccess({sysex: true});
+  } catch (e) {
+    setStatus(cs, "MIDI access was refused. Allow it for this page (the icon in the address bar) and try again.", "bad");
+    return;
+  }
+  access.onstatechange = () => { if (!busy) { listPorts(); } };
+  if (!listPorts()) { setStatus(cs, "No MIDI devices found. Plug the FM-1 in and connect again.", "bad"); return; }
+  $("connect").textContent = "Connect again";
+  await probe();
+}
+
+function parseBank(buf) {
+  const b = new Uint8Array(buf);
+  if (b.length < 16 || String.fromCharCode(...b.subarray(0, 4)) !== "CBNK") throw new Error("not a COWBELL bank (no CBNK header)");
+  const dv = new DataView(buf);
+  const n = dv.getUint16(6, true), size = dv.getUint32(8, true);
+  if (size !== b.length) throw new Error("its size field says " + size + " bytes, the file has " + b.length);
+  const names = [];
+  for (let i = 0; i < n; i++) {
+    const e = b.subarray(16 + 24 * i, 16 + 24 * i + 10);
+    names.push(String.fromCharCode(...e).replace(/\0.*$/s, ""));
+  }
+  return {bytes: b, names, label: ""};
+}
+
+function showBank() {
+  const ul = $("names");
+  ul.innerHTML = "";
+  if (!bank) return;
+  $("bankinfo").textContent = bank.label + ": " + bank.names.length + " samples, " +
+    (bank.bytes.length / 1024).toFixed(0) + " KB, 44.1 kHz.";
+  bank.names.forEach(n => { const li = document.createElement("li"); li.textContent = n; ul.appendChild(li); });
+}
+
+function update() { $("send").disabled = busy || !bank || !info; $("connect").disabled = busy; }
+
+async function send() {
+  const us = $("ustatus"), bar = $("bar"), fill = bar.firstElementChild;
+  if (bank.bytes.length > info.room) { setStatus(us, "This bank is " + bank.bytes.length + " bytes; the FM-1 has room for " + info.room + ".", "bad"); return; }
+  busy = true; update();
+  bar.style.display = "block"; fill.style.width = "0";
+  const b = bank.bytes, total = Math.ceil(b.length / CHUNK);
+  const fail = text => { setStatus(us, text, "bad"); busy = false; update(); };
+  try {
+    setStatus(us, "Starting…");
+    let r = await ask(0x02, u32(b.length), 5000);
+    if (!r) return fail("The FM-1 stopped answering. Replug it, connect again and resend.");
+    if (r.status) return fail("The FM-1 refused it: " + (STATUS[r.status] || r.status));
+    const t0 = performance.now();
+    for (let i = 0, off = 0; off < b.length; i++, off += CHUNK) {
+      const part = b.subarray(off, Math.min(off + CHUNK, b.length));
+      const payload = new Uint8Array(4 + part.length);
+      payload.set(u32(off)); payload.set(part, 4);
+      let ok = false;
+      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+        r = await ask(0x03, payload, 5000);
+        if (!r) continue;
+        if (r.status === 0) ok = true;
+        else if (r.status === 1 && r.v[0] === off + part.length) ok = true;   /* it arrived; the answer did not */
+        else return fail("The FM-1 refused it: " + (STATUS[r.status] || r.status) + ". Connect again and resend.");
+      }
+      if (!ok) return fail("The FM-1 stopped answering. Replug it, connect again and resend: the bank is sent whole each time.");
+      const pc = Math.round(100 * (i + 1) / total);
+      fill.style.width = pc + "%";
+      setStatus(us, "Sending… " + pc + "%");
+    }
+    r = await ask(0x04, undefined, 8000);
+    if (!r) return fail("No answer at the end. Connect again to check; if it still plays the starter samples, resend.");
+    if (r.status) return fail("The FM-1 refused it: " + (STATUS[r.status] || r.status) + ". It went back to its built-in samples; resend.");
+    const s = ((performance.now() - t0) / 1000).toFixed(0);
+    setStatus(us, "Done: " + r.v[0] + " samples in the FM-1, in " + s + " s. Play away.", "good");
+    info.samples = r.v[0]; info.starter = false;
+    setStatus($("cstatus"), "Connected: COWBELL firmware v" + info.version + ", playing " + info.samples + " uploaded samples.", "good");
+  } finally {
+    busy = false; update();
+  }
+}
+
+$("connect").onclick = connect;
+$("ports").onchange = () => probe();
+$("send").onclick = send;
+$("file").onchange = async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try { bank = parseBank(await f.arrayBuffer()); bank.label = f.name; setStatus($("ustatus"), ""); }
+  catch (err) { setStatus($("ustatus"), f.name + ": " + err.message, "bad"); }
+  showBank(); update();
+};
+
+fetch("bank.bin", {cache: "no-cache"}).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+  .then(buf => { bank = parseBank(buf); bank.label = "COWBELL's samples"; showBank(); update(); })
+  .catch(() => { $("bankinfo").textContent = "The sample bank could not be loaded from this site. Choose a bank file below."; });
+</script>
+</body>
+</html>
