@@ -53,7 +53,7 @@ To go back to M-VAVE's original firmware, use the workbench, which offers it. fm
 its pre-check expects a different CRC on the package's user-data file. With that one check skipped, it installs
 over COWBELL normally.
 
-Tested on a real FM-1 (the newer UC25HQ80 flash) on 2026-11-13: V02 installed over COWBELL V01, V15 installed
+Tested on a real FM-1 (one whose flash chip fm1-dock's own loader refuses) on 2026-11-13: V02 installed over COWBELL V01, V15 installed
 over V02, and the v2 release installed over V15.
 
 ## Build
