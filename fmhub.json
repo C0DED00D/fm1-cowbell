@@ -1,0 +1,11 @@
+{
+  "what": "Based on the Bad Gear Meme for a Volca Cowbell, I created an FM-1 Cowbell: a 16-step sequencer playing 13 recorded cowbells, with FEVER for pitch, PRESCRIPTION to pick the sample and a giant MORE knob for ratchets. Starter samples are built in; send the full-quality set from the browser.",
+  "author": "C0DED00D",
+  "kinds": [
+    "groove"
+  ],
+  "editor": "https://c0ded00d.github.io/fm1-cowbell/",
+  "image": "docs/card.png",
+  "color": "#F0A6E6",
+  "sounds": "own: recorded by the maker from their own Roland TR-8S and Alesis DM-10"
+}

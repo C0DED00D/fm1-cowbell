@@ -4,7 +4,7 @@ Remember that time when Bad Gear asked Korg to make a Volca Cowbell way back in 
 
 Korg was too scared of it's awesomeness, so now that the FM-1 supports custom firmware, I decided to take it into my own hands and create an FM-1 Firmware modeled after the meme! 
 
-Cowbell features the giant more knob for ratchets, fever, which controls pitch, and prescription which selects one of 13 presets. The presets are recorded from a Roland TR-83 and Alesis DM-10 module to provide a variety of cowbell sounds. 
+Cowbell features the giant more knob for ratchets, fever, which controls pitch, and prescription which selects one of 13 presets. The presets are recorded from a Roland TR-8S and Alesis DM-10 module to provide a variety of cowbell sounds. 
 
 The firmware only comes with 22 KHz sample sounds, but you can use the sample uploader to get better quality samples.  
 
