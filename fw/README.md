@@ -46,8 +46,15 @@ or:
 python tools/cowbell_upload.py docs/bank.bin
 ```
 
-(`pip install mido python-rtmidi` first.) M-VAVE's original firmware goes back on the same way: the workbench offers
-it, and fm1_open carries it as `sdk/firmware/FM-1_015.fwsc`.
+(`pip install mido python-rtmidi` first.)
+
+To go back to M-VAVE's original firmware, use the workbench, which offers it. fm1_open also carries it as
+`sdk/firmware/FM-1_015.fwsc` (sha256 `db1642b2…`), but fm1-dock's installer refuses that file before starting:
+its pre-check expects a different CRC on the package's user-data file. With that one check skipped, it installs
+over COWBELL normally.
+
+Tested on a real FM-1 (the newer UC25HQ80 flash) on 2026-11-13: V02 installed over COWBELL V01, V15 installed
+over V02, and the v2 release installed over V15.
 
 ## Build
 
