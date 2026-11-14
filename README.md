@@ -1,4 +1,6 @@
-# COWBELL for the M-VAVE FM-1
+# fm1-cowbell
+
+![A pink "volca cowbell" groovebox with a giant MORE knob and FEVER and PRESCRIPTION knobs](docs/cowbell_meme.png)
 
 COWBELL is a cowbell groovebox firmware for the M-VAVE FM-1, built on M-VAVE's open SDK (fm1_open).
 
