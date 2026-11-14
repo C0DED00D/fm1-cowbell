@@ -1,0 +1,10 @@
+# build output
+fw/build/
+out/
+# copied in from cowbell/ by tools/fw_build.sh
+fw/app/cowbell/cowbell.c
+fw/app/cowbell/art.c
+fw/app/cowbell/art.h
+# M-VAVE's SDK: clone it here (see README)
+third_party/
+__pycache__/

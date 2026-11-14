@@ -16,6 +16,12 @@ COWBELL playing its first pattern in the fm1-emu emulator, skinned as a pink FM-
 
 ![COWBELL running on an emulated pink and purple FM-1, PLAY lit and the pattern's step lights on the keys](docs/cowbell_emulator.png)
 
+## Install
+
+Download `COWBELL.fwsc` from the [latest release](https://github.com/C0DED00D/fm1-cowbell/releases/latest) and
+install it like any fm1_open firmware: see [fw/README.md](fw/README.md#install). COWBELL starts playing right away
+on its built-in samples; then send the full-quality ones with the sample uploader below.
+
 ## Sample uploader
 
 **https://c0ded00d.github.io/fm1-cowbell/**
@@ -30,6 +36,13 @@ In order to use it:
 
 The page and the sample bank are in [`docs/`](docs/).
 
+## Build it yourself
+
+The firmware's source is in [`cowbell/`](cowbell/) (the synth) and [`fw/`](fw/) (the host on M-VAVE's
+[fm1_open](https://github.com/m-vave/fm1_open) SDK), the sample tools in [`tools/`](tools/). Build steps and how
+the flash is laid out: [fw/README.md](fw/README.md).
+
 ## License
 
-GPL-3.0: see [LICENSE](LICENSE).
+GPL-3.0: see [LICENSE](LICENSE), and [LICENSING.md](LICENSING.md) for the parts from fm1_open, fm1-dock and the
+Terminus font.
