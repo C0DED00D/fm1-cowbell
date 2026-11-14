@@ -46,3 +46,5 @@ the flash is laid out: [fw/README.md](fw/README.md).
 
 GPL-3.0: see [LICENSE](LICENSE), and [LICENSING.md](LICENSING.md) for the parts from fm1_open, fm1-dock and the
 Terminus font.
+
+You can also try FM-1 Cowbell in the browser, no flashing needed, in the free community [FM-1 Emulator](https://fm1-emulator.atst.tools/).
