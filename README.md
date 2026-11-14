@@ -12,7 +12,7 @@ The firmware only comes with 22 KHz sample sounds, but you can use the sample up
 
 <img src="docs/cowbell_screen.png" width="240" alt="COWBELL's screen: tempo 120, FEVER and PRESCRIPTION knobs, a giant MORE knob, part P1 playing the 808 cowbell, and the 16 steps along the bottom">
 
-COWBELL playing its first pattern on a pink FM-1 (in the fm1-emu emulator):
+COWBELL playing its first pattern in the fm1-emu emulator, skinned as a pink FM-1:
 
 ![COWBELL running on an emulated pink and purple FM-1, PLAY lit and the pattern's step lights on the keys](docs/cowbell_emulator.png)
 
