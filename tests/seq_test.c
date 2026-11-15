@@ -589,11 +589,37 @@ static void t_memories(void)
     memset(&S, 0, sizeof S);
     init(&HOST);
     CHECK(S.mem[3].step[5][9].on == 1 && S.mem[3].bpm == 99 && S.mem[0].step[1][14].rat == 3, "loaded back");
-    /* Not done yet (known gap): PLAY/STOP does not save the current memory's edits */
+    /* autosave, as the fm1-dock firmwares: 3 s after the last edit, stopped and silent; never while playing */
     n_saves = 0;
-    P->step[7][7].on = 1;
-    btn(HB_BTN_PLAY); adv(5000); btn(HB_BTN_PLAY); adv(5000);
-    if (n_saves != 1) note_("known gap: PLAY/STOP does not save the edits (%d saves)", n_saves);
+    adv_ms(10000);
+    CHECK(n_saves == 0, "nothing changed: no autosave (%d)", n_saves);
+    { int was[4], i; for (i = 0; i < 4; i++) was[i] = P->step[sel][3 + i].on;
+    tap(W[3]);                                          /* (step mode, from above) step 4 flipped */
+    CHECK(P->step[sel][3].on != was[0], "step 4 flipped");
+    adv_ms(2500);
+    CHECK(n_saves == 0, "not before 3 s (%d)", n_saves);
+    adv_ms(1000);
+    CHECK(n_saves == 1, "autosaved 3 s after the edit (%d)", n_saves);
+    adv_ms(10000);
+    CHECK(n_saves == 1, "once (%d)", n_saves);
+    tap(W[4]); adv_ms(2000); tap(W[5]); adv_ms(2000);   /* edits 2 s apart: the wait starts again each time */
+    CHECK(n_saves == 1, "edits still coming: not yet (%d)", n_saves);
+    adv_ms(1500);
+    CHECK(n_saves == 2, "3 s after the last of them (%d)", n_saves);
+    btn(HB_BTN_PLAY);
+    tap(W[6]);                                          /* an edit while playing */
+    adv_ms(15000);
+    CHECK(n_saves == 2, "never while playing (%d)", n_saves);
+    btn(HB_BTN_PLAY);
+    adv_ms(5000);
+    CHECK(n_saves == 3, "after STOP, once it is quiet (%d)", n_saves);
+    tap(W[6]); adv_ms(1000); tap(W[6]); adv_ms(5000);   /* off and back on: as saved, nothing to save */
+    CHECK(n_saves == 3, "undone edit: no save (%d)", n_saves);
+    memset(&S, 0, sizeof S);
+    init(&HOST);
+    for (i = 0; i < 4; i++)
+        CHECK(S.mem[0].step[sel][3 + i].on != was[i], "the autosaved step %d loads back", 4 + i);
+    }
 }
 
 static void t_clock_out(void)

@@ -77,7 +77,7 @@ powershell -ExecutionPolicy Bypass -File tools/fw_package.ps1
 ```
 
 `fw_build.sh` follows fm1_open's `sdk/Build.ps1` with the Linux toolchain; `fw_package.ps1` packs with the SDK's
-own `Package.cs`. The result is `fw/build/COWBELL.fwsc`; releases v2 and v3 were built this way. (Set
+own `Package.cs`. The result is `fw/build/COWBELL.fwsc`; releases v2 to v4 were built this way. (Set
 `FM1_OPEN` to use an fm1_open checkout somewhere else.)
 
 ## Samples
@@ -98,3 +98,7 @@ number is what the screen shows, 9 characters at most.
 
 On USB the firmware shows up as "USB-Midi" (the SDK's name), not "FM-1"; the upload tool and the page look for
 both. No velocity: the SDK reports keys as on / off.
+
+Edits save themselves 3 s after the last one, once stopped and silent (a flash write stalls the sound), as the
+fm1-dock firmwares do; SAVE saves at once. Only the last few seconds of edits, or edits while playing, are lost
+by a power-off.

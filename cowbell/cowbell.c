@@ -135,6 +135,13 @@ static uint32_t disp_until;                     /* the 7-segment shows a value u
 static char disp[5];
 static uint8_t save_req, saved_msg;
 static uint32_t msg_until;
+/* autosave, as the fm1-dock firmwares do (Obervave's patterns: 3 s after the last edit, stopped): S's hash looked
+ * at every AUTO_LOOK ms; a change is saved AUTO_QUIET ms after the last one, while stopped, not recording, nothing
+ * held and nothing sounding (an erase stalls the sound); after a failed save, not again for AUTO_RETRY ms */
+#define AUTO_LOOK 250u
+#define AUTO_QUIET 3000u
+#define AUTO_RETRY 30000u
+static uint32_t s_hash, s_saved_hash, s_chg_ms, s_look_ms, s_fail_ms;
 
 /* ================================================================ the sound */
 
@@ -771,6 +778,32 @@ static int strdiff(char *have, const char *want, uint32_t n)
     return d;
 }
 
+static uint32_t store_hash(void)                /* FNV-1a over everything saved */
+{
+    const uint8_t *b = (const uint8_t *)&S;
+    uint32_t h = 2166136261u, i;
+    for (i = 0; i < sizeof S; i++) h = (h ^ b[i]) * 16777619u;
+    return h;
+}
+
+static int store_save(void)                     /* 0: saved; what was saved is then the saved state */
+{
+    uint32_t h;
+    S.magic = STORE_MAGIC;
+    S.version = 1;
+    h = store_hash();
+    if (H->bank_save(&S, sizeof S) != 0) return -1;
+    s_saved_hash = s_hash = h;
+    return 0;
+}
+
+static int voices_on(void)
+{
+    uint32_t i;
+    for (i = 0; i < NV; i++) if (V[i].on) return 1;
+    return 0;
+}
+
 static void draw(uint32_t full)
 {
     const pat_t *pt = P;
@@ -803,14 +836,23 @@ static void draw(uint32_t full)
     /* WRITE: only while stopped (a flash save stalls the sound ~100 ms) */
     if (save_req && !playing) {
         save_req = 0;
-        S.magic = STORE_MAGIC;
-        S.version = 1;
-        saved_msg = H->bank_save(&S, sizeof S) == 0;
+        saved_msg = store_save() == 0;
         msg_until = now + 1500u;
     } else if (save_req && playing) {
         save_req = 0;
         saved_msg = 2;                          /* "STOP FIRST" */
         msg_until = now + 1500u;
+    }
+    if (now - s_look_ms >= AUTO_LOOK) {         /* autosave (no message: nothing was asked) */
+        uint32_t h2 = store_hash();
+        s_look_ms = now;
+        if (h2 != s_hash) { s_hash = h2; s_chg_ms = now; }
+        if (s_hash != s_saved_hash && !playing && !want_play && !rec && held_step < 0 && hold_k < 0 &&
+            roll_part == 0xFF && !voices_on() && now - s_chg_ms >= AUTO_QUIET &&
+            (!s_fail_ms || now - s_fail_ms >= AUTO_RETRY)) {
+            if (store_save() == 0) s_fail_ms = 0;
+            else s_fail_ms = now | 1u;
+        }
     }
 
     /* the header: memory, transport, part and sample */
@@ -960,6 +1002,11 @@ static int init(const hb_host_t *h)
     for (k = 0; k < 11u; k++) key_black[BLACK[k]] = (int8_t)k;
     if (H->bank_load(&S, sizeof S) != 0 || S.magic != STORE_MAGIC || S.version != 1u)
         defaults();
+    S.magic = STORE_MAGIC;                      /* (defaults: unsaved until the first edit, as before) */
+    S.version = 1;
+    s_saved_hash = s_hash = store_hash();
+    s_chg_ms = s_look_ms = H->ms();
+    s_fail_ms = 0;
     cur_mem = 0;
     P = &S.mem[0];
     expand(&CB_ART_MORE, more_base);
