@@ -3,8 +3,8 @@
  * Every hit (start_hit) is logged with its frame, part, velocity and pitch, read back from the voice it took.
  * Each test runs in its own process (fork), so each starts from init() with nothing left over.
  *
- *   wsl -d Ubuntu -- bash /mnt/c/code/claude/fm1/tests/run.sh            all tests
- *   wsl -d Ubuntu -- bash /mnt/c/code/claude/fm1/tests/run.sh ratchet    the ones whose name has "ratchet"
+ *   bash tests/run.sh all tests
+ *   bash tests/run.sh ratchet the ones whose name has "ratchet"
  */
 #include <stdio.h>
 #include <stdlib.h>
