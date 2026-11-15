@@ -2,7 +2,7 @@
 #ifndef FM1_VERSION_H
 #define FM1_VERSION_H
 
-#define FM1_RELEASE_VERSION "V02"
+#define FM1_RELEASE_VERSION "V03"
 #define FM1_UPDATE_PRODUCT "FM-1_8038311"   /* COWBELL: 0W8ELL (a sideways 3 is the W) */
 
 #endif

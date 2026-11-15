@@ -42,6 +42,9 @@ The firmware's source is in [`cowbell/`](cowbell/) (the synth) and [`fw/`](fw/) 
 [fm1_open](https://github.com/m-vave/fm1_open) SDK), the sample tools in [`tools/`](tools/). Build steps and how
 the flash is laid out: [fw/README.md](fw/README.md).
 
+The sequencer's tests run natively with gcc (Linux or WSL): `bash tests/run.sh`. They build `cowbell.c` against a
+fake host and check every hit's exact frame: swing, ratchets, recording, memories, MIDI clock in and out.
+
 ## License
 
 GPL-3.0: see [LICENSE](LICENSE), and [LICENSING.md](LICENSING.md) for the parts from fm1_open, fm1-dock and the

@@ -114,6 +114,7 @@ static uint32_t clk_k;                          /* clocks given in this step (6 
 static volatile uint32_t ext_bpm10;             /* the incoming tempo x 10, 0: none */
 static uint32_t ext_last_ms, ext_t24, ext_n;
 static volatile uint32_t ext_mark;              /* clocks received since FA, read by render */
+static uint8_t ext_start;                       /* FA came with a clock running: start on its next tick */
 static uint32_t ext_mark_seen;
 
 /* ---- the reverb: four combs and two allpasses (Freeverb's lengths), mono */
@@ -237,9 +238,9 @@ static CB_AUDIO void step_start(void)
         const step_t *st = &pt->step[p][s];
         uint32_t code;
         r_n[p] = r_done[p] = 0;
+        if (skip_next[p]) { skip_next[p] = 0; continue; }   /* for this step only, whatever it holds */
         if (!st->on || !audible(p))
             continue;
-        if (skip_next[p]) { skip_next[p] = 0; continue; }
         code = st->rat ? st->rat - 1u : pt->part[p].rat;
         if (code >= NRAT) code = 0;
         r_n[p] = RAT_N[code];
@@ -253,12 +254,19 @@ static CB_AUDIO void step_start(void)
 static CB_AUDIO void seq_chunk(void)
 {
     uint32_t p;
+    if (want_play || want_stop)                 /* a live hit's skip is for the next step of this run only */
+        for (p = 0; p < NP; p++) skip_next[p] = 0;
     if (want_play) { want_play = 0; cur_step = 0; sfr = 0; fresh = 1; playing = 1; ext_mark_seen = 0; }
     if (want_cont) { want_cont = 0; playing = 1; }
     if (want_stop) { want_stop = 0; playing = 0; }
-    if (roll_part < NP) {                       /* MORE! held: the part at its MORE rate, on the beat's grid */
-        uint32_t code = P->part[roll_part].rat, every = step_len(0) / RAT_N[code < NRAT ? code : 0];
-        if (roll_fr >= every) { roll_fr = 0; start_hit(roll_part, 0, 110u, 0); }
+    if (roll_part < NP) {                       /* MORE! held: the part at its MORE rate (a step without swing) */
+        uint32_t code = P->part[roll_part].rat, every;
+        if (code >= NRAT) code = 0;
+        every = (step_len(0) + step_len(1)) / 2u / RAT_N[code];
+        if (roll_fr >= every) {                 /* the remainder kept: no drift (the first hit: at once) */
+            roll_fr = roll_fr >= 2u * every ? 0 : roll_fr - every;
+            start_hit(roll_part, 0, 110u, 0);
+        }
         roll_fr += CH;
     } else
         roll_fr = 0xFFFFFFu;
@@ -277,13 +285,16 @@ static CB_AUDIO void seq_chunk(void)
         cur_step = (uint8_t)((cur_step + 1u) % NS);
         step_start();
     }
-    /* following an external clock: 6 clocks a step; pull the phase a quarter of the way to it */
-    if (ext_bpm10 && ext_mark != ext_mark_seen && (ext_mark % 6u) == 0) {
-        int32_t want = (int32_t)((ext_mark / 6u) % NS), have = cur_step, err;
+    /* following an external clock: 6 clocks a step, the first clock after FA the downbeat (clock 1), so step k
+     * starts on clock 6k + 1. Checked at each pair of steps only (clock 12m + 1), where swing has no say;
+     * err: how early we are (frames). Pull the phase a quarter of the way to it */
+    if (ext_bpm10 && ext_mark && ext_mark != ext_mark_seen && ((ext_mark - 1u) % 12u) == 0) {
+        uint32_t want = ((ext_mark - 1u) / 6u) % NS, have = cur_step;
+        int32_t err;
         ext_mark_seen = ext_mark;
-        err = (have - want) * (int32_t)slen + (int32_t)sfr;
-        while (err > (int32_t)(slen * NS / 2u)) err -= (int32_t)(slen * NS);
-        while (err < -(int32_t)(slen * NS / 2u)) err += (int32_t)(slen * NS);
+        if (have == want) err = (int32_t)sfr;                           /* the step already started */
+        else if ((have + 1u) % NS == want) err = (int32_t)sfr - (int32_t)slen;   /* still in the one before */
+        else err = 0x7FFFFFFF;
         if (err > (int32_t)slen || err < -(int32_t)slen) {      /* lost: jump */
             cur_step = (uint8_t)want; sfr = 0; step_start();
         } else {
@@ -295,8 +306,8 @@ static CB_AUDIO void seq_chunk(void)
     for (p = 0; p < NP; p++)
         while (r_done[p] < r_n[p] && sfr >= r_done[p] * slen / r_n[p]) {
             uint32_t vel = r_vel[p];
-            if (r_ramp[p])                      /* MORE!!: from a third of the level up to it */
-                vel = vel / 3u + vel * 2u * r_done[p] / (3u * (r_n[p] - 1u));
+            if (r_ramp[p])                      /* MORE!!: from a third of the level up to it (the last: all of it) */
+                vel = vel - vel * 2u * (r_n[p] - 1u - r_done[p]) / (3u * (r_n[p] - 1u));
             start_hit(p, r_semis[p], vel, 0);
             r_done[p]++;
         }
@@ -525,7 +536,7 @@ static void encoder(uint32_t id, int32_t d)
         } else {
             code = clampi(pa->rat + d, 0, NRAT - 1);
             pa->rat = (uint8_t)code;
-            if (rec && playing)                 /* motion: the ratchet goes into the step playing */
+            if (rec && playing && pt->step[sel][cur_step].on)   /* motion: the ratchet goes into the step playing */
                 pt->step[sel][cur_step].rat = (uint8_t)(code + 1);
         }
         show(RAT_S[code]);
@@ -610,6 +621,7 @@ static void midi(uint32_t st, uint32_t d1, uint32_t d2)
         uint32_t now = H->ticks();
         ext_last_ms = H->ms();
         ext_mark++;
+        if (ext_start) { ext_start = 0; want_play = 1; }   /* FA, then this clock: the downbeat */
         if (++ext_n == 1u) ext_t24 = now;
         else if (ext_n == 25u) {                /* 24 clocks: one beat */
             uint32_t dt = now - ext_t24, b = dt ? 1440000000u / (dt / 10u + 1u) : 0;   /* bpm x 10 */
@@ -620,9 +632,13 @@ static void midi(uint32_t st, uint32_t d1, uint32_t d2)
         }
         return;
     }
-    if (st == 0xFAu) { ext_mark = 0; want_play = 1; return; }
+    if (st == 0xFAu) {                          /* with a clock running, start on its next tick; without, now */
+        ext_mark = 0;
+        if (ext_bpm10) ext_start = 1; else want_play = 1;
+        return;
+    }
     if (st == 0xFBu) { want_cont = 1; return; }
-    if (st == 0xFCu) { want_stop = 1; return; }
+    if (st == 0xFCu) { ext_start = 0; want_stop = 1; return; }
     if (kind == 0x90u && d2) {
         if ((st & 15u) == 9u) {
             if (d1 >= 36u && d1 < 36u + NP) queue_hit(d1 - 36u, 0, d2, 0);

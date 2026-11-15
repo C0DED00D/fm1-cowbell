@@ -77,7 +77,7 @@ powershell -ExecutionPolicy Bypass -File tools/fw_package.ps1
 ```
 
 `fw_build.sh` follows fm1_open's `sdk/Build.ps1` with the Linux toolchain; `fw_package.ps1` packs with the SDK's
-own `Package.cs`. The result is `fw/build/COWBELL.fwsc`; release v2's was built this way, byte for byte. (Set
+own `Package.cs`. The result is `fw/build/COWBELL.fwsc`; releases v2 and v3 were built this way. (Set
 `FM1_OPEN` to use an fm1_open checkout somewhere else.)
 
 ## Samples
