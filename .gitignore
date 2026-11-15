@@ -8,3 +8,8 @@ fw/app/cowbell/art.h
 # M-VAVE's SDK: clone it here (see README)
 third_party/
 __pycache__/
+# the emulator, built by tools/play.sh
+emu/
+# the recorded WAVs the banks are made from
+better_samples/
+.claude/settings.local.json

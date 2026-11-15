@@ -42,6 +42,11 @@ The firmware's source is in [`cowbell/`](cowbell/) (the synth) and [`fw/`](fw/) 
 [fm1_open](https://github.com/m-vave/fm1_open) SDK), the sample tools in [`tools/`](tools/). Build steps and how
 the flash is laid out: [fw/README.md](fw/README.md).
 
+COWBELL also runs as an [fm1-dock](https://github.com/joakimeriksson/fm1-dock) module (`cowbell/module.cfg`).
+In WSL, `tools/setup_wsl.sh` sets up fm1-dock, its toolchain and the fm1-emu emulator. Then `play.cmd` plays the
+module in the emulator, `play_fw.cmd` plays the firmware, and `tools/dev.sh` builds the module and runs scripted
+key presses. How COWBELL is meant to work: [DESIGN.md](DESIGN.md).
+
 The sequencer's tests run natively with gcc (Linux or WSL): `bash tests/run.sh`. They build `cowbell.c` against a
 fake host and check every hit's exact frame: swing, ratchets, recording, memories, MIDI clock in and out.
 
